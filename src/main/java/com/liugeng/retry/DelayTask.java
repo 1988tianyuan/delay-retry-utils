@@ -1,4 +1,4 @@
-package com.liugeng;
+package com.liugeng.retry;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -7,25 +7,37 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 @Slf4j
-public class DelayTask implements Delayed {
+public class DelayTask<T> implements Delayed {
 
     private volatile Instant expire;
-    private Callable<String> task;
+    private final Callable<T> task;
+    private final AtomicInteger retryCount = new AtomicInteger(0);
 
-    public DelayTask(Instant expire, Callable<String> task) {
+    public DelayTask(Instant expire, Callable<T> task) {
         this.expire = expire;
         this.task = task;
+    }
+
+    public Instant newRetry(long incr, ChronoUnit timeUnit) {
+        Instant now = Instant.now();
+        expire = now.plus(incr, timeUnit);
+        retryCount.incrementAndGet();
+        return expire;
+    }
+
+    public int getRetryCount() {
+        return retryCount.get();
     }
 
     @Override
     public long getDelay(TimeUnit unit) {
         long expireNano = expire.toEpochMilli();
         long nowNano = Instant.now().toEpochMilli();
-        long delay = unit.convert(expireNano - nowNano, TimeUnit.MILLISECONDS);
-        return delay;
+        return unit.convert(expireNano - nowNano, TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -40,21 +52,11 @@ public class DelayTask implements Delayed {
         }
     }
 
-    public void setExpire(Instant expire) {
-        this.expire = expire;
+    public T doTask() throws Exception {
+        return task.call();
     }
 
-    public Instant incrExpire(long incr, ChronoUnit timeUnit) {
-        Instant now = Instant.now();
-        expire = now.plus(incr, timeUnit);
-        return expire;
-    }
-
-    public Instant getExpire() {
-        return expire;
-    }
-
-    public CompletableFuture<String> asyncDoTask(Executor executor) {
+    public CompletableFuture<T> asyncDoTask(Executor executor) {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 return task.call();

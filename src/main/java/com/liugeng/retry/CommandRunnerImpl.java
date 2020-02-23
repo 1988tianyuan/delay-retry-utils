@@ -1,4 +1,4 @@
-package com.liugeng;
+package com.liugeng.retry;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;

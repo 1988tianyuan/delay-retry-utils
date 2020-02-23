@@ -1,12 +1,10 @@
-package com.liugeng;
+package com.liugeng.retry;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
-import java.time.Duration;
 import java.util.concurrent.DelayQueue;
 
 @Component
@@ -14,7 +12,7 @@ public class Test {
 
     @Autowired
     private ThreadPoolTaskExecutor executor;
-    private DelayQueue<DelayTask> delayQueue = new DelayQueue<>();
+    private DelayQueue<DelayTask<Result>> delayQueue = new DelayQueue<>();
     private DelayProducer producer;
     private DelayConsumer consumer;
 
