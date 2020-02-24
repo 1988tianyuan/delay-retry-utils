@@ -1,13 +1,13 @@
 package com.liugeng.retry;
 
-import lombok.extern.slf4j.Slf4j;
-
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.DelayQueue;
 import java.util.concurrent.Executor;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class DelayConsumer {
@@ -62,7 +62,7 @@ public class DelayConsumer {
         @Override
         public boolean checkSuccess(Result result, Throwable e) {
             if (e == null && result != null && result.isSuccess()) {
-                log.info("本次任务成功");
+                log.info("本次任务成功");                
                 return true;
             }
             log.warn("本次任务失败", e);
