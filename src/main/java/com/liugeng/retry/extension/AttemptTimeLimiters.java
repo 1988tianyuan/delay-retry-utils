@@ -28,11 +28,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.SimpleTimeLimiter;
 import com.google.common.util.concurrent.TimeLimiter;
 
-/**
- * Factory class for instances of {@link AttemptTimeLimiter}
- *
- * @author Jason Dunkelberger (dirkraft)
- */
 public class AttemptTimeLimiters {
     
     private static final ExecutorService DEFAULT_EXECUTOR = Executors.newSingleThreadExecutor();
@@ -45,7 +40,7 @@ public class AttemptTimeLimiters {
      * @return an {@link AttemptTimeLimiter} impl which has no time limit
      */
     public static <V> AttemptTimeLimiter<V> noTimeLimit() {
-        return new NoAttemptTimeLimit<V>();
+        return new NoAttemptTimeLimit<>();
     }
 
     /**

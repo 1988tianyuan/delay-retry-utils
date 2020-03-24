@@ -25,8 +25,6 @@ import com.google.common.base.Preconditions;
 
 /**
  * Factory class for {@link StopStrategy} instances.
- *
- * @author JB
  */
 public final class StopStrategies {
     private static final StopStrategy NEVER_STOP = new NeverStopStrategy();
@@ -90,7 +88,7 @@ public final class StopStrategies {
     @Immutable
     private static final class NeverStopStrategy implements StopStrategy {
         @Override
-        public boolean shouldStop(Attempt failedAttempt) {
+        public <V> boolean shouldStop(Attempt<V> failedAttempt) {
             return false;
         }
     }
@@ -105,7 +103,7 @@ public final class StopStrategies {
         }
 
         @Override
-        public boolean shouldStop(Attempt failedAttempt) {
+        public <V> boolean shouldStop(Attempt<V> failedAttempt) {
             return failedAttempt.getAttemptNumber() >= maxAttemptNumber;
         }
     }
@@ -120,7 +118,7 @@ public final class StopStrategies {
         }
 
         @Override
-        public boolean shouldStop(Attempt failedAttempt) {
+        public <V> boolean shouldStop(Attempt<V> failedAttempt) {
             return failedAttempt.getDelaySinceFirstAttempt() >= maxDelay;
         }
     }

@@ -30,5 +30,5 @@ public interface WaitStrategy {
      * @param failedAttempt the previous failed {@code Attempt}
      * @return the sleep time before next attempt
      */
-    long computeSleepTime(Attempt failedAttempt);
+    <V> long computeSleepTime(Attempt<V> failedAttempt);
 }

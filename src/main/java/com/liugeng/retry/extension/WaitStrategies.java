@@ -1,22 +1,6 @@
-/*
- * Copyright 2012-2015 Ray Holder
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 package com.liugeng.retry.extension;
 
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
@@ -25,6 +9,7 @@ import javax.annotation.concurrent.Immutable;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 /**
  * Factory class for instances of {@link WaitStrategy}.
@@ -212,7 +197,7 @@ public final class WaitStrategies {
                                                                    @Nonnull Function<T, Long> function) {
         Preconditions.checkNotNull(exceptionClass, "exceptionClass may not be null");
         Preconditions.checkNotNull(function, "function may not be null");
-        return new ExceptionWaitStrategy<T>(exceptionClass, function);
+        return new ExceptionWaitStrategy<>(exceptionClass, function);
     }
 
     /**
@@ -239,7 +224,7 @@ public final class WaitStrategies {
         }
 
         @Override
-        public long computeSleepTime(Attempt failedAttempt) {
+        public <V> long computeSleepTime(Attempt<V> failedAttempt) {
             return sleepTime;
         }
     }
@@ -259,7 +244,7 @@ public final class WaitStrategies {
         }
 
         @Override
-        public long computeSleepTime(Attempt failedAttempt) {
+        public <V> long computeSleepTime(Attempt<V> failedAttempt) {
             long t = Math.abs(RANDOM.nextLong()) % (maximum - minimum);
             return t + minimum;
         }
@@ -278,9 +263,9 @@ public final class WaitStrategies {
         }
 
         @Override
-        public long computeSleepTime(Attempt failedAttempt) {
+        public <V> long computeSleepTime(Attempt<V> failedAttempt) {
             long result = initialSleepTime + (increment * (failedAttempt.getAttemptNumber() - 1));
-            return result >= 0L ? result : 0L;
+            return Math.max(result, 0L);
         }
     }
 
@@ -299,13 +284,13 @@ public final class WaitStrategies {
         }
 
         @Override
-        public long computeSleepTime(Attempt failedAttempt) {
+        public <V> long computeSleepTime(Attempt<V> failedAttempt) {
             double exp = Math.pow(2, failedAttempt.getAttemptNumber());
             long result = Math.round(multiplier * exp);
             if (result > maximumWait) {
                 result = maximumWait;
             }
-            return result >= 0L ? result : 0L;
+            return Math.max(result, 0L);
         }
     }
 
@@ -323,7 +308,7 @@ public final class WaitStrategies {
         }
 
         @Override
-        public long computeSleepTime(Attempt failedAttempt) {
+        public <V> long computeSleepTime(Attempt<V> failedAttempt) {
             long fib = fib(failedAttempt.getAttemptNumber());
             long result = multiplier * fib;
 
@@ -331,7 +316,7 @@ public final class WaitStrategies {
                 result = maximumWait;
             }
 
-            return result >= 0L ? result : 0L;
+            return Math.max(result, 0L);
         }
 
         private long fib(long n) {
@@ -362,7 +347,7 @@ public final class WaitStrategies {
         }
 
         @Override
-        public long computeSleepTime(Attempt failedAttempt) {
+        public <V> long computeSleepTime(Attempt<V> failedAttempt) {
             long waitTime = 0L;
             for (WaitStrategy waitStrategy : waitStrategies) {
                 waitTime += waitStrategy.computeSleepTime(failedAttempt);
@@ -381,9 +366,9 @@ public final class WaitStrategies {
             this.function = function;
         }
 
-        @SuppressWarnings({"ThrowableResultOfMethodCallIgnored", "ConstantConditions", "unchecked"})
+        @SuppressWarnings({"ThrowableResultOfMethodCallIgnored", "unchecked"})
         @Override
-        public long computeSleepTime(Attempt lastAttempt) {
+        public <V> long computeSleepTime(Attempt<V> lastAttempt) {
             if (lastAttempt.hasException()) {
                 Throwable cause = lastAttempt.getExceptionCause();
                 if (exceptionClass.isAssignableFrom(cause.getClass())) {

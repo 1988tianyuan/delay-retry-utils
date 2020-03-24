@@ -1,24 +1,7 @@
-/*
- * Copyright 2012-2015 Ray Holder
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *    http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 package com.liugeng.retry.extension;
 
-import com.google.common.annotations.Beta;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.Immutable;
@@ -27,6 +10,7 @@ import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 
 /**
  * A retryer, which executes a call, and retries it until it succeeds, or
@@ -40,8 +24,6 @@ import java.util.concurrent.TimeUnit;
  * is thread-safe, provided the arguments passed to its constructor are thread-safe.
  *
  * @param <V> the type of the call return value
- * @author JB
- * @author Jason Dunkelberger (dirkraft)
  */
 public final class Retryer<V> {
     private final StopStrategy stopStrategy;
@@ -64,7 +46,7 @@ public final class Retryer<V> {
                    @Nonnull WaitStrategy waitStrategy,
                    @Nonnull Predicate<Attempt<V>> rejectionPredicate) {
 
-        this(AttemptTimeLimiters.<V>noTimeLimit(), stopStrategy, waitStrategy, BlockStrategies.threadSleepStrategy(), rejectionPredicate);
+        this(AttemptTimeLimiters.noTimeLimit(), stopStrategy, waitStrategy, BlockStrategies.threadSleepStrategy(), rejectionPredicate);
     }
 
     /**
@@ -100,7 +82,7 @@ public final class Retryer<V> {
                    @Nonnull WaitStrategy waitStrategy,
                    @Nonnull BlockStrategy blockStrategy,
                    @Nonnull Predicate<Attempt<V>> rejectionPredicate) {
-        this(attemptTimeLimiter, stopStrategy, waitStrategy, blockStrategy, rejectionPredicate, new ArrayList<RetryListener>());
+        this(attemptTimeLimiter, stopStrategy, waitStrategy, blockStrategy, rejectionPredicate, new ArrayList<>());
     }
 
     /**
@@ -115,7 +97,6 @@ public final class Retryer<V> {
      *                           strategy indicates otherwise or the thread is interrupted.
      * @param listeners          collection of retry listeners
      */
-    @Beta
     public Retryer(@Nonnull AttemptTimeLimiter<V> attemptTimeLimiter,
                    @Nonnull StopStrategy stopStrategy,
                    @Nonnull WaitStrategy waitStrategy,
@@ -158,16 +139,16 @@ public final class Retryer<V> {
             Attempt<V> attempt;
             try {
                 V result = attemptTimeLimiter.call(callable);
-                attempt = new ResultAttempt<V>(result, attemptNumber, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
+                attempt = new ResultAttempt<>(result, attemptNumber, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
             } catch (Throwable t) {
-                attempt = new ExceptionAttempt<V>(t, attemptNumber, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
+                attempt = new ExceptionAttempt<>(t, attemptNumber, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime));
             }
 
             for (RetryListener listener : listeners) {
                 listener.onRetry(attempt);
             }
 
-            if (!rejectionPredicate.apply(attempt)) {
+            if (!rejectionPredicate.test(attempt)) {
                 return attempt.get();
             }
             if (stopStrategy.shouldStop(attempt)) {
@@ -193,7 +174,7 @@ public final class Retryer<V> {
      * @return a {@link RetryerCallable} that behaves like the given {@link Callable} with retry behavior defined by this {@link Retryer}
      */
     public RetryerCallable<V> wrap(Callable<V> callable) {
-        return new RetryerCallable<V>(this, callable);
+        return new RetryerCallable<>(this, callable);
     }
 
     @Immutable
@@ -209,7 +190,7 @@ public final class Retryer<V> {
         }
 
         @Override
-        public R get() throws ExecutionException {
+        public R get() {
             return result;
         }
 
@@ -295,8 +276,6 @@ public final class Retryer<V> {
     /**
      * A {@link Callable} which wraps another {@link Callable} in order to add
      * retrying behavior from a given {@link Retryer} instance.
-     *
-     * @author JB
      */
     public static class RetryerCallable<X> implements Callable<X> {
         private Retryer<X> retryer;
